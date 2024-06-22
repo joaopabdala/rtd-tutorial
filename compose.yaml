@@ -1,0 +1,55 @@
+services:
+  db:
+    build: ./db
+    volumes:
+     - mysqldata:/var/lib/mysql
+    networks:
+      - app-network
+
+  web:
+    build: ./web
+    ports:
+      - 80:80
+    volumes:
+      - apache-logs:/var/log/apache2
+      - ./web/apache-config.conf:/etc/apache2/sites-available/000-default.conf
+    networks:
+      - app-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.1
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    networks:
+      - app-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.10.1
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - apache-logs:/var/log/apache2
+    ports:
+      - "5044:5044"
+    networks:
+      - app-network
+    depends_on:
+      - elasticsearch
+      
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.1
+    ports:
+      - "5601:5601"
+    networks:
+      - app-network
+    depends_on:
+      - elasticsearch
+
+
+volumes:
+  mysqldata:
+  apache-logs:
+
+networks:
+  app-network:
